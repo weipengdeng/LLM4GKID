@@ -1,21 +1,21 @@
-# LLM4GKID: A Multimodal Large Language Model-driven POI Matching Framework for Ghost Kitchen Identification
+# LLM4GKID: A Multimodal Large Language Model-driven Framework for Ghost Kitchen Identification
 
 [![Paper](https://img.shields.io/badge/Paper-Submitted%20to%20IEEE-blue)](https://github.com/weipengdeng/LLM4GKID)
 [![Python](https://img.shields.io/badge/Python-3.8+-green)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue)](LICENSE)
 
-> **Note**: This repository contains the implementation for the paper "LLM4GKID: A Multimodal Large Language Model-driven POI Matching Framework for Ghost Kitchen Identification" submitted to IEEE.
+> **Note**: This repository contains the implementation for the paper "LLM4GKID: A Multimodal Large Language Model-driven Framework for Ghost Kitchen Identification" submitted to IEEE.
 
 ## 🍽️ Overview
 
-LLM4GKID is a novel framework that identifies **ghost kitchens** (delivery-only restaurants without physical storefronts) by matching Points of Interest (POI) across different platforms. The framework leverages multimodal signals including spatial, semantic, and visual information to detect establishments that exist digitally but lack physical presence.
+LLM4GKID is a novel framework that identifies **ghost kitchens** (or called virtual restaurant: delivery-only restaurants without physical storefronts) by matching Points of Interest (POI) across different platforms. The framework leverages multimodal signals including spatial, semantic, and visual information to detect establishments that exist digitally but lack physical presence.
 
 🔗 **Interactive 3D Visualization**
 [https://weipengdeng/github.io/LLM4GKID/](https://weipengdeng.github.io/LLM4GKID/)
 
 ## 🚧 Development Status
 
-**Code and documentation are currently under development.** The complete implementation, datasets, and detailed documentation will be released upon acceptance of the paper.
+**Code and documentation are currently under development.**  The complete implementation, datasets, and detailed documentation will be released upon acceptance of the paper.
 
 ## 📚 Citation
 
