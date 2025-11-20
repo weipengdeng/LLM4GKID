@@ -59,20 +59,19 @@
         /* Controls - Non Interactive Indicators */
         #controls-container {
             background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
-            padding: 40px; pointer-events: auto;
+            padding: 40px 40px 30px 40px; pointer-events: auto;
             display: flex; flex-direction: column; align-items: center;
         }
         #progress-bar-container { width: 800px; height: 4px; background: #333; margin-bottom: 20px; position: relative; border-radius: 2px; overflow: hidden;}
         #progress-bar { width: 0%; height: 100%; background: #009be2; transition: width 0.5s; }
 
-        #steps-wrapper { display: flex; gap: 15px; }
+        #steps-wrapper { display: flex; gap: 15px; margin-bottom: 25px; }
         .step-btn {
             background: rgba(255,255,255,0.03);
             border: 1px solid rgba(255,255,255,0.15);
             color: #555; padding: 10px 20px;
             font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 1px;
             position: relative; overflow: hidden; min-width: 140px; text-align: center;
-            /* Removed pointer cursor and interaction */
             cursor: default; 
             pointer-events: none;
             transition: all 0.5s;
@@ -83,6 +82,30 @@
             transform: translateY(-2px);
             font-weight: bold;
             color: #fff;
+        }
+
+        /* --- REPO BUTTON --- */
+        #repo-btn {
+            text-decoration: none;
+            color: #888;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            letter-spacing: 2px;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 2px;
+            background: rgba(0,0,0,0.6);
+            transition: all 0.3s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        #repo-btn:hover {
+            border-color: #00ff88;
+            color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
+        }
+        #repo-btn::before {
+            content: '★'; font-size: 10px;
         }
 
         /* Labels */
@@ -135,7 +158,7 @@
 <div id="ui-layer">
     <div id="header">
         <div>
-            <h1>LLM4GKID <span style="font-size: 16px; opacity: 0.5; vertical-align: middle;">// v3.4.0 (Auto-Pilot)</span></h1>
+            <h1>LLM4GKID <span style="font-size: 16px; opacity: 0.5; vertical-align: middle;">// v3.5.0</span></h1>
             <div class="subtitle">MULTIMODAL POI ALIGNMENT FRAMEWORK</div>
         </div>
         <div id="play-status"><div class="pulse-dot"></div> SYSTEM ACTIVE</div>
@@ -158,6 +181,9 @@
             <div class="step-btn">03. VISUAL MATCHING</div>
             <div class="step-btn">04. SUPERVISED FUSION</div>
         </div>
+        <a id="repo-btn" href="https://github.com/weipengdeng/LLM4GKID" target="_blank">
+            VIEW SOURCE CODE
+        </a>
     </div>
 </div>
 
