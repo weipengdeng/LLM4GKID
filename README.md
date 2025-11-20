@@ -10,6 +10,9 @@
 
 LLM4GKID is a novel framework that identifies **ghost kitchens** (delivery-only restaurants without physical storefronts) by matching Points of Interest (POI) across different platforms. The framework leverages multimodal signals including spatial, semantic, and visual information to detect establishments that exist digitally but lack physical presence.
 
+Methodology demostration (HTML version)
+[https:](https://github.com/weipengdeng/LLM4GKID/)
+
 ## 🚧 Development Status
 
 **Code and documentation are currently under development.** The complete implementation, datasets, and detailed documentation will be released upon acceptance of the paper.
