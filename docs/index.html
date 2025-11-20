@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LLM4GKID | Enterprise Methodology Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Rajdhani', sans-serif; }
+        canvas { display: block; }
+
+        /* --- UI LAYOUT --- */
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        /* Header */
+        #header {
+            padding: 25px 40px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0) 100%);
+            display: flex; justify-content: space-between; align-items: flex-start;
+        }
+        h1 {
+            margin: 0; color: #fff; font-family: 'Orbitron', sans-serif; font-size: 28px; letter-spacing: 3px;
+            text-shadow: 0 0 20px rgba(0, 155, 226, 0.4);
+        }
+        .subtitle { color: #009be2; font-size: 14px; letter-spacing: 1px; margin-top: 5px; font-weight: 600; }
+
+        /* Playback Status */
+        #play-status {
+            border: 1px solid rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 20px;
+            font-size: 12px; color: #aaa; background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .pulse-dot { width: 8px; height: 8px; background: #00ff88; border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,255,136, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(0,255,136, 0); } 100% { opacity: 1; } }
+
+        /* Legend */
+        #legend {
+            position: absolute; top: 100px; right: 40px;
+            background: rgba(12, 12, 14, 0.85);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            padding: 20px;
+            backdrop-filter: blur(8px);
+            border-radius: 4px;
+        }
+        .legend-title { color: #fff; font-weight: bold; font-size: 14px; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 5px;}
+        .legend-item { display: flex; align-items: center; margin-bottom: 10px; color: #ccc; font-size: 13px; }
+        .shape { width: 10px; height: 10px; margin-right: 12px; display: inline-block; position: relative; }
+        
+        /* Custom Shapes for Legend */
+        .shape.odp { background: #009be2; border-radius: 50%; }
+        .shape.crp { background: #FF6633; } 
+        .shape.match { background: #00ff88; box-shadow: 0 0 8px #00ff88; border-radius: 50%; }
+        .shape.ghost { background: #FFD700; box-shadow: 0 0 8px #FFD700; border-radius: 50%; }
+        
+        /* Controls - Non Interactive Indicators */
+        #controls-container {
+            background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+            padding: 40px; pointer-events: auto;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        #progress-bar-container { width: 800px; height: 4px; background: #333; margin-bottom: 20px; position: relative; border-radius: 2px; overflow: hidden;}
+        #progress-bar { width: 0%; height: 100%; background: #009be2; transition: width 0.5s; }
+
+        #steps-wrapper { display: flex; gap: 15px; }
+        .step-btn {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #555; padding: 10px 20px;
+            font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 1px;
+            position: relative; overflow: hidden; min-width: 140px; text-align: center;
+            /* Removed pointer cursor and interaction */
+            cursor: default; 
+            pointer-events: none;
+            transition: all 0.5s;
+        }
+        .step-btn.active {
+            background: #009be2; color: #000; border-color: #009be2;
+            box-shadow: 0 0 20px rgba(0, 155, 226, 0.4);
+            transform: translateY(-2px);
+            font-weight: bold;
+            color: #fff;
+        }
+
+        /* Labels */
+        .label-card {
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white; padding: 6px 10px;
+            font-family: 'Roboto Mono', monospace; font-size: 10px;
+            text-align: center; pointer-events: none;
+            opacity: 0; transition: opacity 0.5s, transform 0.5s;
+            transform: translateY(10px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .label-card.visible { opacity: 1; transform: translateY(0); }
+        .score-display {
+            display: inline-block; margin-top: 4px; padding: 2px 6px;
+            font-weight: bold; font-size: 12px;
+            background: #222; border: 1px solid #555; color: #fff;
+            transition: all 0.5s;
+        }
+        .img-placeholder {
+            width: 100%; height: 3px; background: #555; margin: 3px 0;
+            position: relative; overflow: hidden;
+        }
+        .img-placeholder::after {
+            content: ''; position: absolute; top:0; left:0; width: 50%; height: 100%;
+            background: #fff; animation: scan 1s infinite linear;
+        }
+        @keyframes scan { from {left: -50%} to {left: 100%} }
+        
+        /* Floating Text for Final Decision */
+        .decision-text {
+            font-family: 'Orbitron'; font-weight: bold; font-size: 16px;
+            text-shadow: 0 0 10px currentColor; opacity: 0; transition: opacity 1s;
+            white-space: nowrap;
+        }
+
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+<div id="ui-layer">
+    <div id="header">
+        <div>
+            <h1>LLM4GKID <span style="font-size: 16px; opacity: 0.5; vertical-align: middle;">// v3.4.0 (Auto-Pilot)</span></h1>
+            <div class="subtitle">MULTIMODAL POI ALIGNMENT FRAMEWORK</div>
+        </div>
+        <div id="play-status"><div class="pulse-dot"></div> SYSTEM ACTIVE</div>
+    </div>
+
+    <div id="legend">
+        <div class="legend-title">ENTITY CLASSIFICATION</div>
+        <div class="legend-item"><span class="shape odp"></span> Online Point (ODP)</div>
+        <div class="legend-item"><span class="shape crp"></span> Physical Store (CRP)</div>
+        <div style="height: 1px; background: #333; margin: 8px 0;"></div>
+        <div class="legend-item"><span class="shape match"></span> Hybrid Match (Success)</div>
+        <div class="legend-item"><span class="shape ghost"></span> Ghost Kitchen (No Match)</div>
+    </div>
+
+    <div id="controls-container">
+        <div id="progress-bar-container"><div id="progress-bar"></div></div>
+        <div id="steps-wrapper">
+            <div class="step-btn active">01. SPATIAL BLOCKING</div>
+            <div class="step-btn">02. SEMANTIC MATCHING</div>
+            <div class="step-btn">03. VISUAL MATCHING</div>
+            <div class="step-btn">04. SUPERVISED FUSION</div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import TWEEN from 'three/addons/libs/tween.module.js';
+
+    // --- CONFIGURATION ---
+    const CFG = {
+        colors: {
+            odp: 0x009be2,
+            crp: 0xFF6633,
+            ghost: 0xFFD700, 
+            match: 0x00ff88, 
+            lineIdle: 0x666666,
+            lineActive: 0xffffff,
+            ambient: 0x222222
+        },
+        timings: {
+            stepDuration: 5000, 
+        },
+        camera: {
+            initPos: {x: 40, y: 35, z: 40}, 
+            highPos: {x: 0, y: 40, z: 50},
+            focusPos: {x: 22, y: 45, z: 35} 
+        }
+    };
+
+    let currentStep = 0;
+
+    // --- SCENE INIT ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050505);
+    scene.fog = new THREE.FogExp2(0x050505, 0.015); 
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+    camera.position.copy(CFG.camera.initPos);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    const labelRenderer = new CSS2DRenderer();
+    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    labelRenderer.domElement.style.position = 'absolute';
+    labelRenderer.domElement.style.top = '0px';
+    labelRenderer.domElement.style.pointerEvents = 'none';
+    document.body.appendChild(labelRenderer.domElement);
+
+    // --- POST PROCESSING ---
+    const renderScene = new RenderPass(scene, camera);
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+    bloomPass.threshold = 0.15; 
+    bloomPass.strength = 0.6; 
+    bloomPass.radius = 0.4;
+
+    const composer = new EffectComposer(renderer);
+    composer.addPass(renderScene);
+    composer.addPass(bloomPass);
+
+    // --- ENVIRONMENT ---
+    const cityGroup = new THREE.Group();
+    scene.add(cityGroup);
+
+    function initCity() {
+        const grid = new THREE.GridHelper(150, 60, 0x222222, 0x111111);
+        grid.position.y = -0.1;
+        cityGroup.add(grid);
+
+        const boxGeo = new THREE.BoxGeometry(1,1,1);
+        const edges = new THREE.EdgesGeometry(boxGeo);
+        const mat = new THREE.LineBasicMaterial({ color: 0x556677, transparent: true, opacity: 0.25 }); 
+        
+        for(let i=0; i<60; i++) {
+            const x = (Math.random() - 0.5) * 100;
+            const z = (Math.random() - 0.5) * 100;
+            if(Math.abs(x) < 10 && Math.abs(z) < 10) continue;
+            const h = Math.random() * 8 + 2;
+            const w = Math.random() * 4 + 2;
+            const d = Math.random() * 4 + 2;
+            const mesh = new THREE.LineSegments(edges, mat);
+            mesh.position.set(x, h/2, z);
+            mesh.scale.set(w, h, d);
+            cityGroup.add(mesh);
+        }
+
+        const ambGeo = new THREE.BufferGeometry();
+        const ambPos = [];
+        const ambCols = []; 
+        const palette = [
+            new THREE.Color(0x009be2), 
+            new THREE.Color(0xeeeeee), 
+            new THREE.Color(0x9966ff),
+            new THREE.Color(0x445566)
+        ];
+
+        for(let i=0; i<180; i++) {
+            ambPos.push((Math.random()-0.5)*140, Math.random()*2 + 0.2, (Math.random()-0.5)*140);
+            const col = palette[Math.floor(Math.random() * palette.length)];
+            ambCols.push(col.r, col.g, col.b);
+        }
+        ambGeo.setAttribute('position', new THREE.Float32BufferAttribute(ambPos, 3));
+        ambGeo.setAttribute('color', new THREE.Float32BufferAttribute(ambCols, 3)); 
+        const ambMat = new THREE.PointsMaterial({ vertexColors: true, size: 1.2, transparent: true, opacity: 0.7 });
+        cityGroup.add(new THREE.Points(ambGeo, ambMat));
+    }
+    initCity();
+
+    // --- ENTITY SYSTEM ---
+    const entities = {
+        hybrid: { odp: null, pos: new THREE.Vector3(-12, 1.5, 5), candidates: [], isGhost: false },
+        ghost: { odp: null, pos: new THREE.Vector3(12, 1.5, -5), candidates: [], isGhost: true }
+    };
+
+    function createGlowTexture(colorHex) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64; canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        const grad = ctx.createRadialGradient(32,32,0,32,32,32);
+        grad.addColorStop(0, 'rgba(255,255,255,1)');
+        grad.addColorStop(0.3, new THREE.Color(colorHex).getStyle());
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0,0,64,64);
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    function spawnODP(entityKey) {
+        const ent = entities[entityKey];
+        const geo = new THREE.SphereGeometry(0.8, 32, 32);
+        const mat = new THREE.MeshBasicMaterial({ color: CFG.colors.odp });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.copy(ent.pos);
+        scene.add(mesh);
+
+        const spriteMat = new THREE.SpriteMaterial({ 
+            map: createGlowTexture(CFG.colors.odp), 
+            transparent: true, blending: THREE.AdditiveBlending, opacity: 0.8
+        });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.scale.set(6,6,6);
+        mesh.add(sprite);
+
+        ent.odp = mesh;
+        ent.sprite = sprite; 
+    }
+
+    function spawnCandidates(entityKey) {
+        const ent = entities[entityKey];
+        const count = 12;
+        const winnerIdx = ent.isGhost ? -1 : Math.floor(Math.random() * 3); 
+
+        for(let i=0; i<count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = 5 + Math.random() * 10; 
+            const x = ent.pos.x + Math.cos(angle) * r;
+            const z = ent.pos.z + Math.sin(angle) * r;
+            const pos = new THREE.Vector3(x, 0.6, z); 
+            
+            const geo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+            const mat = new THREE.MeshBasicMaterial({ color: CFG.colors.crp });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.copy(pos);
+            scene.add(mesh);
+
+            const lineGeo = new THREE.BufferGeometry().setFromPoints([ent.pos, pos]);
+            const lineMat = new THREE.LineBasicMaterial({ color: CFG.colors.lineActive, transparent: true, opacity: 0.3 });
+            const line = new THREE.Line(lineGeo, lineMat);
+            scene.add(line);
+
+            const isWinner = (i === winnerIdx);
+            const semanticScore = isWinner ? 95 : Math.floor(Math.random() * 60);
+            
+            const div = document.createElement('div');
+            div.className = 'label-card';
+            div.innerHTML = `
+                <div>${isWinner ? 'TacoBell #92' : 'Restaurant ' + i}</div>
+                <div class="img-placeholder"></div>
+                <div class="score-display" style="border-color:#fff">Analyzing...</div>
+            `;
+            const labelObj = new CSS2DObject(div);
+            labelObj.position.set(0, 1.5, 0);
+            mesh.add(labelObj);
+
+            ent.candidates.push({
+                id: i,
+                mesh: mesh,
+                line: line,
+                labelObj: labelObj,
+                labelDiv: div,
+                isWinner: isWinner,
+                score: semanticScore,
+                startPos: ent.pos.clone(),
+                endPos: pos.clone(),
+                retained: false 
+            });
+        }
+    }
+
+    spawnODP('hybrid');
+    spawnODP('ghost');
+    spawnCandidates('hybrid');
+    spawnCandidates('ghost');
+
+
+    // --- ANIMATION UTILS ---
+    function animateLineRetraction(candidate) {
+        const posAttr = candidate.line.geometry.attributes.position;
+        const start = { t: 0 };
+        new TWEEN.Tween(start)
+            .to({ t: 1 }, 800)
+            .easing(TWEEN.Easing.Cubic.In)
+            .onUpdate(() => {
+                const curX = THREE.MathUtils.lerp(candidate.endPos.x, candidate.startPos.x, start.t);
+                const curZ = THREE.MathUtils.lerp(candidate.endPos.z, candidate.startPos.z, start.t);
+                const curY = THREE.MathUtils.lerp(candidate.endPos.y, candidate.startPos.y, start.t);
+                posAttr.setXYZ(1, curX, curY, curZ);
+                posAttr.needsUpdate = true;
+                candidate.line.material.opacity = 0.3 * (1 - start.t);
+            })
+            .onComplete(() => {
+                candidate.line.visible = false;
+            })
+            .start();
+            
+        spawnParticles(candidate.endPos, 0x555555);
+        new TWEEN.Tween(candidate.mesh.scale).to({x:0,y:0,z:0}, 500).start();
+    }
+
+    function spawnParticles(pos, color) {
+        const cnt = 15;
+        const geo = new THREE.BufferGeometry();
+        const arr = new Float32Array(cnt * 3);
+        const vels = [];
+        for(let i=0; i<cnt; i++) {
+            arr[i*3] = pos.x;
+            arr[i*3+1] = pos.y;
+            arr[i*3+2] = pos.z;
+            vels.push({
+                x: (Math.random()-0.5)*0.2, y: (Math.random()-0.5)*0.2, z: (Math.random()-0.5)*0.2
+            });
+        }
+        geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+        const mat = new THREE.PointsMaterial({ color: color, size: 0.5, transparent: true });
+        const pts = new THREE.Points(geo, mat);
+        scene.add(pts);
+
+        let frame = 0;
+        function tick() {
+            if(frame > 30) { scene.remove(pts); return; }
+            frame++;
+            const posArr = pts.geometry.attributes.position.array;
+            for(let i=0; i<cnt; i++) {
+                posArr[i*3] += vels[i].x;
+                posArr[i*3+1] += vels[i].y;
+                posArr[i*3+2] += vels[i].z;
+            }
+            pts.geometry.attributes.position.needsUpdate = true;
+            mat.opacity = 1 - (frame/30);
+            requestAnimationFrame(tick);
+        }
+        tick();
+    }
+
+    function performBlockingLogic() {
+        ['hybrid', 'ghost'].forEach(key => {
+            const ent = entities[key];
+            let pool = [...ent.candidates];
+            const retained = [];
+            
+            if(key === 'hybrid') {
+                const win = pool.find(c => c.isWinner);
+                retained.push(win);
+                pool = pool.filter(c => c !== win);
+            }
+            
+            // Randomly pick 3 others
+            for(let k=0; k<3; k++) {
+                if(pool.length === 0) break;
+                const rndIdx = Math.floor(Math.random() * pool.length);
+                retained.push(pool[rndIdx]);
+                pool.splice(rndIdx, 1);
+            }
+            
+            retained.forEach(c => c.retained = true);
+            
+            // Handle non-retained
+            pool.forEach(c => {
+                c.retained = false;
+                animateLineRetraction(c);
+                c.labelDiv.classList.remove('visible');
+            });
+
+            // Highlight retained
+            retained.forEach(c => {
+                new TWEEN.Tween(c.line.material).to({ opacity: 0.8, color: 0xffffff }, 1000).start();
+            });
+        });
+    }
+
+    // --- CORE STEPS LOGIC ---
+
+    const steps = {
+        0: () => { // 01. SPATIAL BLOCKING
+            updateProgressBar(25);
+            resetScene();
+            // Camera setup
+            new TWEEN.Tween(camera.position).to(CFG.camera.highPos, 1500).easing(TWEEN.Easing.Cubic.Out).start();
+            // Trigger Blocking (Filtering) shortly after camera move starts
+            setTimeout(() => performBlockingLogic(), 1000);
+        },
+        1: () => { // 02. SEMANTIC MATCHING
+            updateProgressBar(50);
+            // Reveal Labels (Names) to simulate text matching
+            ['hybrid', 'ghost'].forEach(key => {
+                const ent = entities[key];
+                ent.candidates.forEach(c => {
+                    if(c.retained) {
+                        c.labelDiv.classList.add('visible');
+                    }
+                });
+            });
+        },
+        2: () => { // 03. VISUAL MATCHING
+            updateProgressBar(75);
+            // Zoom in and Trigger Scoring (Visual Calc)
+            new TWEEN.Tween(camera.position).to(CFG.camera.focusPos, 2000).easing(TWEEN.Easing.Cubic.Out).start();
+            
+            ['hybrid', 'ghost'].forEach(key => {
+                const ent = entities[key];
+                ent.candidates.forEach(c => {
+                    if(c.retained) {
+                        // Simulate visual calculation rolling
+                        const scoreEl = c.labelDiv.querySelector('.score-display');
+                        const targetScore = c.score;
+                        
+                        let roll = 0;
+                        const interval = setInterval(() => {
+                            roll++;
+                            scoreEl.innerText = Math.floor(Math.random()*99);
+                            if(roll > 15) {
+                                clearInterval(interval);
+                                scoreEl.innerText = targetScore + '%';
+                                if(targetScore > 90) {
+                                    scoreEl.style.borderColor = '#00ff88';
+                                    scoreEl.style.color = '#00ff88';
+                                } else {
+                                    scoreEl.style.borderColor = '#ff5555';
+                                    scoreEl.style.color = '#ff5555';
+                                }
+                            }
+                        }, 60);
+                    }
+                });
+            });
+        },
+        3: () => { // 04. SUPERVISED FUSION
+            updateProgressBar(100);
+            
+            // HYBRID CASE
+            const hyb = entities.hybrid;
+            const winner = hyb.candidates.find(c => c.isWinner);
+            
+            hyb.candidates.forEach(c => {
+                if(c !== winner && c.retained) animateLineRetraction(c);
+                c.labelDiv.classList.remove('visible'); 
+            });
+
+            if(winner) {
+                new TWEEN.Tween(winner.line.material.color).to(new THREE.Color(CFG.colors.match), 500).start();
+                winner.line.material.opacity = 1;
+                new TWEEN.Tween(hyb.odp.material.color).to(new THREE.Color(CFG.colors.match), 500).start();
+                new TWEEN.Tween(winner.mesh.material.color).to(new THREE.Color(CFG.colors.match), 500).start();
+                
+                setTimeout(() => {
+                    showDecisionText(hyb.pos, "MATCH CONFIRMED", CFG.colors.match);
+                }, 600);
+            }
+
+            // GHOST CASE
+            const gst = entities.ghost;
+            gst.candidates.forEach(c => {
+                if(c.retained) animateLineRetraction(c);
+                c.labelDiv.classList.remove('visible');
+            });
+            
+            setTimeout(() => {
+                new TWEEN.Tween(gst.odp.material.color).to(new THREE.Color(CFG.colors.ghost), 500).start();
+                gst.sprite.material.map = createGlowTexture(CFG.colors.ghost);
+                new TWEEN.Tween(gst.odp.scale).to({x:1.5, y:1.5, z:1.5}, 400).yoyo(true).repeat(3).start();
+                
+                setTimeout(() => {
+                    showDecisionText(gst.pos, "GHOST KITCHEN", CFG.colors.ghost);
+                }, 1200);
+            }, 500);
+        }
+    };
+
+    function showDecisionText(pos, text, color) {
+        const div = document.createElement('div');
+        div.className = 'decision-text';
+        div.innerText = text;
+        div.style.color = new THREE.Color(color).getStyle();
+        const obj = new CSS2DObject(div);
+        obj.position.set(0, 2, 0);
+        
+        const dummy = new THREE.Object3D();
+        dummy.position.copy(pos);
+        scene.add(dummy);
+        dummy.add(obj);
+        
+        setTimeout(() => { div.style.opacity = 1; }, 100);
+    }
+
+    function fadeOutDecisions() {
+        const decisions = document.querySelectorAll('.decision-text');
+        decisions.forEach(el => {
+            el.style.opacity = 0;
+        });
+    }
+
+    function resetScene() {
+        ['hybrid', 'ghost'].forEach(key => {
+            const ent = entities[key];
+            
+            ent.odp.material.color.setHex(CFG.colors.odp);
+            ent.odp.scale.set(1,1,1);
+            ent.sprite.material.map = createGlowTexture(CFG.colors.odp);
+            
+            ent.candidates.forEach(c => {
+                c.mesh.scale.set(1,1,1);
+                c.mesh.material.color.setHex(CFG.colors.crp);
+                c.line.visible = true;
+                c.line.material.opacity = 0.3;
+                c.line.material.color.setHex(CFG.colors.lineActive);
+                
+                const posAttr = c.line.geometry.attributes.position;
+                posAttr.setXYZ(1, c.endPos.x, c.endPos.y, c.endPos.z);
+                posAttr.needsUpdate = true;
+
+                c.labelDiv.classList.remove('visible');
+                c.labelDiv.querySelector('.score-display').innerText = "Analyzing...";
+                c.labelDiv.querySelector('.score-display').style.borderColor = '#555';
+                c.labelDiv.querySelector('.score-display').style.color = '#fff';
+            });
+        });
+
+        const decisions = document.querySelectorAll('.decision-text');
+        decisions.forEach(el => el.remove());
+    }
+
+    // --- CONTROL LOOP ---
+
+    function updateProgressBar(pct) {
+        document.getElementById('progress-bar').style.width = pct + '%';
+        document.querySelectorAll('.step-btn').forEach((btn, idx) => {
+            if(idx === currentStep) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+    }
+
+    function autoPilot() {
+        steps[currentStep]();
+        currentStep++;
+
+        if(currentStep > 3) {
+            currentStep = 0; 
+            setTimeout(() => {
+                fadeOutDecisions();
+                setTimeout(() => {
+                    autoPilot();
+                }, 1500);
+            }, 5000);
+        } else {
+            setTimeout(autoPilot, CFG.timings.stepDuration);
+        }
+    }
+
+    setTimeout(autoPilot, 1000);
+
+    // --- RENDER LOOP ---
+    const controls = new OrbitControls(camera, labelRenderer.domElement);
+    controls.enableDamping = true;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.5;
+
+    function animate() {
+        requestAnimationFrame(animate);
+        TWEEN.update();
+        controls.update();
+        composer.render();
+        labelRenderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        composer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+</script>
+</body>
+</html>
