@@ -23,7 +23,7 @@ If you use this work in your research, please cite:
 
 ```bibtex
 @article{d2025llm4gkid,
-  title={LLM4GKID: A Multimodal Large Language Model-driven POI Matching Framework for Ghost Kitchen Identification},
+  title={LLM4GKID: A Multimodal Large Language Model-driven Framework for Ghost Kitchen Identification},
   journal={Submitted to IEEE},
   year={2025}
 }
