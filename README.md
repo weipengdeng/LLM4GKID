@@ -18,7 +18,7 @@ We are progressively releasing datasets associated with this project. Currently 
 |------|-------------|
 | `GK_2024.gdb.zip` | Ghost kitchen identification results for Shenzhen (2024), in ESRI GeoDatabase format |
 
-> **Note on data release**: Additional datasets (e.g., gridded restaurant channel composition, platform-level POI attributes) are being prepared and will be released incrementally as we complete cleaning and documentation. We appreciate your patience and understanding.
+> **Note on data release**: Additional datasets (e.g., gridded restaurant channel composition) are being prepared and will be released incrementally as we complete cleaning and documentation. We appreciate your patience and understanding.
 
 ## 🚧 Development Status
 
